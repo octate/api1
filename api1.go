@@ -9,7 +9,37 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type Movie struct {
+	Name           string
+	Genre          string
+	LeadStudio     string
+	AudienceScore  string
+	Profitability  string
+	RottenTomatoes string
+	WorldwideGross string
+	Year           string
+}
+
+var Data []Movie
+
+func populateData() {
+	records := readCsvFile("./movies.csv")
+	for i := 1; i < len(records); i++ {
+		movie := Movie{
+			Name:           records[i][0],
+			Genre:          records[i][1],
+			LeadStudio:     records[i][2],
+			AudienceScore:  records[i][3],
+			Profitability:  records[i][4],
+			RottenTomatoes: records[i][5],
+			WorldwideGross: records[i][6],
+			Year:           records[i][7],
+		}
+		Data = append(Data, movie)
+	}
+}
 func main() {
+	populateData()
 	r := gin.Default()
 	setupRoutes(r)
 	r.Run() // listen and serve on 0.0.0.0:8080 (for windows "localhost:8080")
@@ -24,9 +54,10 @@ func setupRoutes(r *gin.Engine) {
 //Dummy function
 func Dummy(c *gin.Context) {
 
-	records := readCsvFile("./movies.csv")
+	//records := readCsvFile("./movies.csv")
 	year, ok := c.Params.Get("year")
-	movieNames := getYear(records, year)
+	genre, ok := c.GetQuery("genre")
+	movieNames := getYear(year, genre)
 	if ok == false {
 		res := gin.H{
 			"error": "name is missing",
@@ -36,8 +67,9 @@ func Dummy(c *gin.Context) {
 	}
 
 	res := gin.H{
-		"Name": movieNames,
-		"Year": year,
+		"year":   year,
+		"movies": movieNames,
+		"count":  len(movieNames),
 	}
 	c.JSON(http.StatusOK, res)
 }
@@ -100,14 +132,20 @@ func readCsvFile(filePath string) [][]string {
 	return records
 }
 
-func getYear(records [][]string, year string) []string {
-	movieName := []string{}
-	for i := 0; i < len(records); i++ {
-		if records[i][7] == year {
-			movieName = append(movieName, records[i][0])
+func getYear(year, genre string) []Movie {
+	movies := []Movie{}
+	for i := 0; i < len(Data); i++ {
+		if Data[i].Year == year {
+			if genre != "" {
+				if Data[i].Genre == genre {
+					movies = append(movies, Data[i])
+				}
+			} else {
+				movies = append(movies, Data[i])
+			}
 		}
 	}
-	return movieName
+	return movies
 }
 func getRating(records [][]string, rating string) []string {
 	movieName := []string{}
